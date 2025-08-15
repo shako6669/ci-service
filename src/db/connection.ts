@@ -8,12 +8,16 @@ const db = new Sequelize(
   {
     host: process.env.HOST,
     dialect: "mysql",
-    logging: (msg) => {
-      // Only log if the message contains an error
-      if (msg.includes("ERROR") || msg.includes("error")) {
-        logger.debug(msg);
-      }
-    },
+    logging:
+      process.env.BASE_DATOS === "soporte"
+        ? true
+        : (msg, timing) => {
+            // Only log if the message contains an error
+            if (msg.includes("ERROR") || msg.toLowerCase().includes("error")) {
+              console.error(msg);
+              if (timing) console.error(`Execution time: ${timing}ms`);
+            }
+          },
   }
 );
 
