@@ -9,7 +9,7 @@ const Dispositivo = db.define(
   "Dispositivo",
   {
     serie: DataTypes.STRING,
-    cod_inventario: DataTypes.STRING,
+    codInventario: DataTypes.STRING,
     estado: DataTypes.ENUM(
       "REGISTRADO",
       "EN_BODEGA",
@@ -29,7 +29,7 @@ const Dispositivo = db.define(
       },
       {
         unique: true,
-        fields: ["cod_inventario"],
+        fields: ["codInventario"],
       },
     ],
   }

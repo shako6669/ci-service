@@ -16,7 +16,7 @@ export const getTipos = async (req: Request, res: Response) => {
           model: Tipo,
           as: "tiposRelacionado",
           attributes: {
-            include: ["id", "nombre", "descripcion", "activo", "es_repuesto"],
+            include: ["id", "nombre", "descripcion", "activo", "esRepuesto"],
             exclude: ["createdAt", "updatedAt"],
           },
         },

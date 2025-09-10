@@ -5,6 +5,7 @@ import Propiedad from "../model/propiedad.model";
 import { Op } from "sequelize";
 import Tipo from "../model/tipo.model";
 import Fabricante from "../model/fabricante.model";
+import Categoria from "../model/categoria.model";
 
 interface IDispo {
   id: number;
@@ -28,9 +29,22 @@ interface IPropiedad {
   Detalle: IDetalle;
 }
 
+interface IDtoDispo {
+  id: number;
+  serie: string;
+  codInventario: string;
+  estado: string;
+  activo: boolean;
+  marca: string;
+  modelo: string;
+  tipo: string;
+  propiedades: Record<string, string>;
+  componentes: Record<string, string | number>;
+}
+
 export const getDispositivos = async (req: Request, res: Response) => {
   try {
-    const dispoDTO: Record<string, string>[] = [];
+    const dispoDTO: IDtoDispo[] = [];
     const dispositivo = await Dispositivo.findAll({
       where: {
         idPadre: { [Op.is]: null },
@@ -174,8 +188,11 @@ export const getDispositivos = async (req: Request, res: Response) => {
         marca: dis.getDataValue("marca").getDataValue("nombre"),
         modelo: dis.getDataValue("modelo").getDataValue("nombre"),
         tipo: dis.getDataValue("tipo").getDataValue("nombre"),
-        ...propObject,
-        ...compObject,
+        activo: dis.getDataValue("activo"),
+        codInventario: dis.getDataValue("codInventario"),
+        estado: dis.getDataValue("estado"),
+        propiedades: { ...propObject },
+        componentes: { ...compObject },
       });
     });
     res.status(200).json(dispoDTO);
@@ -205,7 +222,6 @@ export const getDispositivo = async (req: Request, res: Response) => {
           as: "modelo",
           attributes: { exclude: ["createdAt", "updatedAt"] },
         },
-
         {
           model: Tipo,
           as: "tipo",
@@ -224,6 +240,7 @@ export const getDispositivo = async (req: Request, res: Response) => {
               "catId",
             ],
           },
+          include: ["categoria"],
           through: {
             attributes: {
               exclude: ["createdAt", "updatedAt"],

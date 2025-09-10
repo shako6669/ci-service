@@ -11,7 +11,7 @@ const Tipo = db.define(
     nombre: DataTypes.STRING,
     descripcion: DataTypes.STRING,
     activo: DataTypes.BOOLEAN,
-    es_repuesto: DataTypes.BOOLEAN,
+    esRepuesto: DataTypes.BOOLEAN,
   },
   {
     freezeTableName: true,
