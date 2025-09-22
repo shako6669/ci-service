@@ -7,7 +7,9 @@ import Categoria from "../model/categoria.model";
 
 export const getPropiedad = async (req: Request, res: Response) => {
   try {
-    const propiedades = await Propiedad.findAll();
+    const propiedades = await Propiedad.findAll({
+      include: ["categoria"]
+    });
     res.status(200).json(propiedades);
   } catch (error) {
     logger.info(error);

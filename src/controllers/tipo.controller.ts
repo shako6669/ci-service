@@ -4,6 +4,8 @@ import logger from "../utils/logger";
 import Propiedad from "../model/propiedad.model";
 import Clasificacion from "../model/clasificacion.model";
 import Categoria from "../model/categoria.model";
+import db from "../db/connection";
+import { Transaction } from "sequelize";
 
 export const getTipos = async (req: Request, res: Response) => {
   try {
@@ -59,3 +61,26 @@ export const getTipos = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const saveTipo = async( req: Request, res: Response,)=>{
+  const {body} = req
+  const transaction = await db.transaction({
+    isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+    autocommit: false
+  })
+  try {
+    console.log(body)
+    const newTipo = await Tipo.create(body, {transaction})
+    //@ts-ignore
+    await newTipo.AddPropiedades(body.propiedades, { transaction})
+    await newTipo.save({transaction})
+    await transaction.commit()
+    res.status(200).json({msj: "Registro guardado correctamente"})
+  } catch (error) {
+    logger.info(error);
+    await transaction.rollback()
+    res.status(500).json({
+      msg: "Hable con el administrador",
+    });
+  }
+}

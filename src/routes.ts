@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { getTipos } from "./controllers/tipo.controller";
+import { getTipos, saveTipo } from "./controllers/tipo.controller";
 import {
   getPropiedad,
   postPropiedad,
@@ -20,6 +20,7 @@ function routes(app: Express) {
   });
   //   RUTAS DE ACCESO AL TIPO DE DISPOSITIVO
   app.get("/api/tipo", getTipos);
+  app.post("/api/tipo", saveTipo);
   //   RUTAS DE ACCESO A LAS PROPIEDADES DEL TIPO
   app.get("/api/propi", getPropiedad);
   app.post("/api/propi", postPropiedad);
