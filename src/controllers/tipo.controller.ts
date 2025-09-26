@@ -62,25 +62,58 @@ export const getTipos = async (req: Request, res: Response) => {
   }
 };
 
-export const saveTipo = async( req: Request, res: Response,)=>{
-  const {body} = req
+export const saveTipo = async (req: Request, res: Response) => {
+  const { body } = req;
   const transaction = await db.transaction({
     isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
-    autocommit: false
-  })
+    autocommit: false,
+  });
   try {
-    console.log(body)
-    const newTipo = await Tipo.create(body, {transaction})
+    console.log(body);
+    const newTipo = await Tipo.create(body, { transaction });
+    const propiedadesIds = body.propiedades.map((i: any) => i.id);
+    const tiposIds = body.tiposRelacionado.map((i: any) => i.id);
     //@ts-ignore
-    await newTipo.AddPropiedades(body.propiedades, { transaction})
-    await newTipo.save({transaction})
-    await transaction.commit()
-    res.status(200).json({msj: "Registro guardado correctamente"})
+    await newTipo.addPropiedades(propiedadesIds, { transaction });
+    //@ts-ignore
+    await newTipo.addTiposRelacionado(tiposIds, { transaction });
+    await newTipo.save({ transaction });
+    await transaction.commit();
+    res.status(200).json({ msj: "Registro guardado correctamente" });
   } catch (error) {
     logger.info(error);
-    await transaction.rollback()
+    await transaction.rollback();
     res.status(500).json({
       msg: "Hable con el administrador",
     });
   }
-}
+};
+export const updateTipo = async (req: Request, res: Response) => {
+  const { body, params } = req;
+  const transaction = await db.transaction({
+    isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+    autocommit: false,
+  });
+  try {
+    console.log(body, params);
+    const updateTipo = await Tipo.findByPk(params.id, { transaction });
+    const propiedadesIds = body.propiedades.map((i: any) => i.id);
+    const tiposIds = body.tiposRelacionado.map((i: any) => i.id);
+    if (updateTipo) {
+      //@ts-ignore
+      await updateTipo.setPropiedades(propiedadesIds, { transaction });
+      //@ts-ignore
+      await updateTipo.setTiposRelacionado(tiposIds, { transaction });
+      await updateTipo.update(body, { transaction });
+      await transaction.commit();
+      res.status(200).json({ msj: "Registro guardado correctamente" });
+    }
+    res.status(204).json({ msj: "No existe registro" });
+  } catch (error) {
+    logger.info(error);
+    await transaction.rollback();
+    res.status(500).json({
+      msg: "Hable con el administrador",
+    });
+  }
+};

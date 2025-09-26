@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { getTipos, saveTipo } from "./controllers/tipo.controller";
+import { getTipos, saveTipo, updateTipo } from "./controllers/tipo.controller";
 import {
   getPropiedad,
   postPropiedad,
@@ -8,6 +8,7 @@ import { getFabricante } from "./controllers/fabricante.controller";
 import {
   getDispositivo,
   getDispositivos,
+  saveDispositivo,
 } from "./controllers/dispositivo.controller";
 import {
   getCategorias,
@@ -21,6 +22,7 @@ function routes(app: Express) {
   //   RUTAS DE ACCESO AL TIPO DE DISPOSITIVO
   app.get("/api/tipo", getTipos);
   app.post("/api/tipo", saveTipo);
+  app.put("/api/tipo/:id", updateTipo);
   //   RUTAS DE ACCESO A LAS PROPIEDADES DEL TIPO
   app.get("/api/propi", getPropiedad);
   app.post("/api/propi", postPropiedad);
@@ -29,6 +31,7 @@ function routes(app: Express) {
   //   RUTAS DE ACCESO A LOS DISPOSITIVOS
   app.get("/api/dispo", getDispositivos);
   app.get("/api/dispo/:id", getDispositivo);
+  app.post("/api/dispo", saveDispositivo);
   // RUTAS DE ACCESO A LAS CATEGORIAS
   app.get("/api/categoria", getCategorias);
   app.post("/api/categoria", saveCategoria);

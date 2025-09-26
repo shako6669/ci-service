@@ -10,14 +10,17 @@ const Dispositivo = db.define(
   {
     serie: DataTypes.STRING,
     codInventario: DataTypes.STRING,
-    estado: DataTypes.ENUM(
-      "REGISTRADO",
-      "EN_BODEGA",
-      "ASIGNADO",
-      "REPUESTO",
-      "BAJA"
-    ),
-    activo: DataTypes.BOOLEAN,
+    estado: {
+      type: DataTypes.ENUM(
+        "REGISTRADO",
+        "EN_BODEGA",
+        "ASIGNADO",
+        "REPUESTO",
+        "BAJA"
+      ),
+      defaultValue: "REGISTRADO",
+    },
+    activo: { type: DataTypes.BOOLEAN, defaultValue: true },
   },
   {
     freezeTableName: true,

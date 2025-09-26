@@ -2,10 +2,13 @@ import { Request, Response } from "express";
 import logger from "../utils/logger";
 import Dispositivo from "../model/dispositivo.model";
 import Propiedad from "../model/propiedad.model";
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import Tipo from "../model/tipo.model";
 import Fabricante from "../model/fabricante.model";
 import Categoria from "../model/categoria.model";
+import db from "../db/connection";
+import { version } from "pino";
+import Detalle from "../model/detalle.model";
 
 interface IDispo {
   id: number;
@@ -40,6 +43,20 @@ interface IDtoDispo {
   tipo: string;
   propiedades: Record<string, string>;
   componentes: Record<string, string | number>;
+}
+
+interface ISaveDispo {
+  id: number;
+  codInventario: string;
+  serie: string;
+  marcaId: number;
+  modeloId: number;
+  tipoId: number;
+  detallePropi: {
+    idPropiedad: number;
+    valor: string;
+    version: string;
+  }[];
 }
 
 export const getDispositivos = async (req: Request, res: Response) => {
@@ -133,13 +150,29 @@ export const getDispositivos = async (req: Request, res: Response) => {
       ],
     });
 
-    dispositivo.map((dis) => {
+    const promiseArray = dispositivo.map(async (dis) => {
+      // Buscar las propiedades activas del tipo de dispositivo
+      const propiTipo = await Propiedad.findAll({
+        include: {
+          model: Tipo,
+          as: "tipos",
+          where: { id: dis.getDataValue("tipoId") },
+        },
+      });
+      //Creamos el objeto inicial para las propiedades de cada dispositivos por su tipo
+      const tipoPropiedades = Object.fromEntries(
+        propiTipo.map((prop) => [prop.getDataValue("nombre"), ""])
+      ) as Record<string, string>;
+      //Obtenemos las propiedades de cada dispositivo
       const propiedades = dis.getDataValue("propi_dispo") as IPropiedad[];
+      //Recorremos cada propiedad para ir llenando los valores de cada propiedad
       const propObject = propiedades.reduce(
         (prev: Record<string, string>, cur: IPropiedad) => {
-          return { ...prev, [cur.nombre]: cur.Detalle.valor };
+          if (propiTipo.some((i) => i.getDataValue("id") === cur.id)) {
+            return { ...prev, [cur.nombre]: cur.Detalle.valor };
+          } else return { ...prev };
         },
-        {}
+        tipoPropiedades
       );
       const componentes = dis.getDataValue("componentes") as IDispo[];
       // Recorremos el arreglo de los componentes para calcular el objeto
@@ -195,9 +228,11 @@ export const getDispositivos = async (req: Request, res: Response) => {
         componentes: { ...compObject },
       });
     });
+
+    await Promise.all(promiseArray);
     res.status(200).json(dispoDTO);
   } catch (error) {
-    logger.info("Ocurrio un error");
+    logger.info("Ocurrió un error");
   }
 };
 
@@ -296,5 +331,51 @@ export const getDispositivo = async (req: Request, res: Response) => {
     res.status(200).json(dispositivo);
   } catch (error) {
     logger.info("Ocurrio un error");
+  }
+};
+
+export const saveDispositivo = async (
+  req: Request<{}, {}, ISaveDispo, {}>,
+  res: Response
+) => {
+  const { body } = req;
+  console.log(
+    "BODY",
+    body.detallePropi.map((i) => ({
+      valor: i.valor,
+      version: i.version,
+    }))
+  );
+  const transaction = await db.transaction({
+    autocommit: false,
+    isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+  });
+  try {
+    const newDispo = await Dispositivo.build();
+    newDispo.setDataValue("serie", body.serie);
+    newDispo.setDataValue("codInventario", body.codInventario);
+    newDispo.setDataValue("marcaId", body.marcaId);
+    newDispo.setDataValue("modeloId", body.modeloId);
+    newDispo.setDataValue("tipoId", body.tipoId);
+
+    await newDispo.save({
+      transaction,
+    });
+
+    for (const detalle of body.detallePropi) {
+      //@ts-ignore
+      await newDispo.addPropi_dispo(detalle.idPropiedad, {
+        transaction,
+        through: {
+          valor: detalle.valor,
+          version: detalle.version,
+        },
+      });
+    }
+    await transaction.commit();
+    res.status(200).json({ message: "Registro exitoso" });
+  } catch (error) {
+    await transaction.rollback();
+    logger.info("Ocurrió un error");
   }
 };
