@@ -13,6 +13,7 @@ import {
 import {
   getCategorias,
   saveCategoria,
+  test,
 } from "./controllers/categoria.controller";
 
 function routes(app: Express) {
@@ -35,5 +36,6 @@ function routes(app: Express) {
   // RUTAS DE ACCESO A LAS CATEGORIAS
   app.get("/api/categoria", getCategorias);
   app.post("/api/categoria", saveCategoria);
+  app.post("/api/test", test);
 }
 export default routes;

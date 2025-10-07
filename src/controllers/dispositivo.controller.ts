@@ -57,6 +57,7 @@ interface ISaveDispo {
     valor: string;
     version: string;
   }[];
+  componentes: ISaveDispo[];
 }
 
 export const getDispositivos = async (req: Request, res: Response) => {
@@ -335,47 +336,75 @@ export const getDispositivo = async (req: Request, res: Response) => {
 };
 
 export const saveDispositivo = async (
-  req: Request<{}, {}, ISaveDispo, {}>,
+  req: Request<{}, {}, ISaveDispo[], {}>,
   res: Response
 ) => {
   const { body } = req;
-  console.log(
-    "BODY",
-    body.detallePropi.map((i) => ({
-      valor: i.valor,
-      version: i.version,
-    }))
-  );
+
   const transaction = await db.transaction({
     autocommit: false,
     isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
   });
   try {
-    const newDispo = await Dispositivo.build();
-    newDispo.setDataValue("serie", body.serie);
-    newDispo.setDataValue("codInventario", body.codInventario);
-    newDispo.setDataValue("marcaId", body.marcaId);
-    newDispo.setDataValue("modeloId", body.modeloId);
-    newDispo.setDataValue("tipoId", body.tipoId);
+    for (const element of body) {
+      const newDispo = await Dispositivo.build();
+      newDispo.setDataValue("serie", element.serie);
+      if (element.codInventario !== "") {
+        newDispo.setDataValue("codInventario", element.codInventario);
+      }
+      newDispo.setDataValue("marcaId", element.marcaId);
+      newDispo.setDataValue("modeloId", element.modeloId);
+      newDispo.setDataValue("tipoId", element.tipoId);
 
-    await newDispo.save({
-      transaction,
-    });
-
-    for (const detalle of body.detallePropi) {
-      //@ts-ignore
-      await newDispo.addPropi_dispo(detalle.idPropiedad, {
+      await newDispo.save({
         transaction,
-        through: {
-          valor: detalle.valor,
-          version: detalle.version,
-        },
       });
+
+      for (const detalle of element.detallePropi) {
+        //@ts-ignore
+        await newDispo.addPropi_dispo(detalle.idPropiedad, {
+          transaction,
+          through: {
+            valor: detalle.valor,
+            version: detalle.version,
+          },
+        });
+      }
+      for (const componente of element.componentes) {
+        const newComp = await Dispositivo.build();
+        componente.serie !== "" &&
+          newComp.setDataValue("serie", componente.serie);
+        componente.marcaId > 0 &&
+          newComp.setDataValue("marcaId", componente.marcaId);
+        componente.modeloId > 0 &&
+          newComp.setDataValue("modeloId", componente.modeloId);
+        newComp.setDataValue("tipoId", componente.tipoId);
+
+        await newComp.save({
+          transaction,
+        });
+
+        for (const detalleComp of componente.detallePropi) {
+          //@ts-ignore
+          await newComp.addPropi_dispo(detalleComp.idPropiedad, {
+            transaction,
+            through: {
+              valor: detalleComp.valor,
+              version: detalleComp.version,
+            },
+          });
+
+          //@ts-ignore
+          await newDispo.addComponentes(newComp, { transaction });
+        }
+      }
     }
     await transaction.commit();
     res.status(200).json({ message: "Registro exitoso" });
   } catch (error) {
     await transaction.rollback();
-    logger.info("Ocurrió un error");
+    logger.error("Ocurrió un error");
+    logger.error(error);
+    res.status(500).json(error);
   }
 };

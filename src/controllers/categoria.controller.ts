@@ -34,3 +34,13 @@ export const saveCategoria = async (req: Request, res: Response) => {
     });
   }
 };
+export const test = (req: Request, res: Response) => {
+  const { body } = req;
+  try {
+    throw new Error();
+    res.status(200).json();
+  } catch (error) {
+    logger.info(error);
+    res.status(500).json({ message: "Error", data: [], reqStatus: false });
+  }
+};
